@@ -2,6 +2,7 @@
 import argparse
 import os
 import operator
+import sys
 
 
 from sdb.passwords import InteractiveSession
@@ -17,7 +18,9 @@ parser.add_argument('--file', default=os.path.expanduser('~/.passwords'))
 args = parser.parse_args()
 actions = [args.edit, args.add, args.delete, args.raw]
 if sum(actions) > 1:
-    raise Exception("Only one of --edit, --add, --delete, or --raw may be specified")
+    parser.print_usage()
+    sys.stderr.write("Only one of --edit, --add, --delete, or --raw may be specified\n")
+    sys.exit(2)
 
 session = InteractiveSession(args)
 
