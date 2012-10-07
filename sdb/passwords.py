@@ -298,7 +298,7 @@ class InteractiveSession(object):
             'Password [blank to generate]: ',
             required=False,
             password=True
-        ) or gen_password()
+        ) or gen_password_entropy(128)
         notes = self.prompt('Notes: ', required=False)
 
         return (domain, username, password, notes)
@@ -309,7 +309,7 @@ class InteractiveSession(object):
         new_record[1] = self.prompt('Username [%s]: ' % record[1], required=False) or record[1]
         pw = self.prompt('Password []/g: ', required=False, password=True) or record[2]
         if pw == 'g':
-            new_record[2] = gen_password()
+            new_record[2] = gen_password_entropy(128)
         elif pw:
             new_record[2] = pw
         print "Notes: %s" % record[3]
