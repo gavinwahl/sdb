@@ -257,7 +257,7 @@ def atomic_replace(filename):
 
 def edit_in_editor(current):
     EDITOR = os.environ.get('EDITOR', 'vim')
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile(mode='w+') as f:
         try:
             f.write(current)
             f.flush()
