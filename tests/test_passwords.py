@@ -361,3 +361,19 @@ class TestInteractive(TestCase):
 
         pw, output = self.get_a_password('unrel')
         assert output == 'aaa@unrelated.com: notes\n'
+
+    def test_raw(self):
+        records = [
+            ('domain.com', 'usernamet', 'password', ''),
+            ('other.com', 'otheruse', 'abc', 'notas'),
+            ('unrelated.com', 'aaa', 'foobar', 'notes'),
+        ]
+        for r in records:
+            self.add_a_password(*r)
+
+        input = StringIO()
+        output = StringIO()
+        session = InteractiveSession(self.args, input=input, output=output, password='asdf')
+        session.raw_action()
+
+        assert output.getvalue() == encode(records)

@@ -7,16 +7,17 @@ import operator
 from sdb.passwords import InteractiveSession
 
 parser = argparse.ArgumentParser()
-parser.add_argument('domain')
+parser.add_argument('domain', nargs='?')
 parser.add_argument('--add', action="store_true")
 parser.add_argument('--edit', action="store_true")
 parser.add_argument('--delete', action="store_true")
+parser.add_argument('--raw', action="store_true")
 parser.add_argument('--file', default=os.path.expanduser('~/.passwords'))
 
 args = parser.parse_args()
-actions = [args.edit, args.add, args.delete]
+actions = [args.edit, args.add, args.delete, args.raw]
 if sum(actions) > 1:
-    raise Exception("Only one of --edit, --add, or --delete may be specified")
+    raise Exception("Only one of --edit, --add, --delete, or --raw may be specified")
 
 session = InteractiveSession(args)
 
@@ -27,6 +28,8 @@ try:
         session.edit_action()
     elif args.delete:
         session.delete_action()
+    elif args.raw:
+        session.raw_action()
     else:
         session.show_action()
 except KeyboardInterrupt:

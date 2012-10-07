@@ -337,13 +337,13 @@ class InteractiveSession(object):
             return []
 
     def add_action(self):
-        record = self.get_record(self.args.domain)
+        record = self.get_record(self.args.domain or self.prompt('Domain: '))
         def add(records):
             return records + [record]
         self.edit_transaction(add)
 
     def show_action(self, clipboard=10):
-        record = self.find_record(self.args.domain, self.read_records())
+        record = self.find_record(self.args.domain or self.prompt('Domain: '), self.read_records())
         self.output.write(pretty_record(record))
         self.output.write('\n')
         if clipboard:
@@ -363,7 +363,7 @@ class InteractiveSession(object):
 
     def edit_action(self):
         def edit(records):
-            record = self.find_record(self.args.domain, records)
+            record = self.find_record(self.args.domain or self.prompt('Domain: '), records)
             new_record = self.edit_record(record)
             for i, choice in enumerate(records):
                 if choice == record:
@@ -373,7 +373,7 @@ class InteractiveSession(object):
 
     def delete_action(self):
         def delete(records):
-            record = self.find_record(self.args.domain, records)
+            record = self.find_record(self.args.domain or self.prompt('Domain: '), records)
             self.output.write(pretty_record(record))
             self.output.write('\n')
             confirm = self.prompt('Really? [n]: ', required=False) or 'n'
@@ -385,3 +385,6 @@ class InteractiveSession(object):
                 self.output.write("Ok, cancelled\n")
             return records
         self.edit_transaction(delete)
+
+    def raw_action(self):
+        self.output.write(encode(self.read_records()))
