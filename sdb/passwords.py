@@ -11,19 +11,25 @@ from contextlib import contextmanager
 from getpass import getpass
 import random; random = random.SystemRandom()
 
-from diceware import WORDS
+from .diceware import WORDS
 
+
+def force_bytes(s):
+    try:
+        return s.encode('utf-8')
+    except (AttributeError, UnicodeDecodeError):
+        return s
 
 def encode(records):
     res = []
     for record in records:
         res.append(repr(record))
-    return '\n'.join(res) + '\n'
+    return ('\n'.join(res) + '\n').encode('utf-8')
 
 
 def decode(str):
     records = []
-    for line in str.split('\n'):
+    for line in str.decode('utf-8').split('\n'):
         if line:
             records.append(ast.literal_eval(line))
     return records
@@ -31,7 +37,7 @@ def decode(str):
 
 def set_clipboard(str):
     proc = subprocess.Popen(['xclip'], stdin=subprocess.PIPE)
-    proc.stdin.write(str.encode("utf8"))
+    proc.stdin.write(str)
     proc.communicate()
 
 
@@ -44,6 +50,7 @@ def get_clipboard():
 
 
 def copy_to_clipboard(str, timeout=10):
+    str = force_bytes(str)
     current_clipboard = get_clipboard()
     set_clipboard(str)
     time.sleep(timeout)
@@ -52,8 +59,7 @@ def copy_to_clipboard(str, timeout=10):
     if str == get_clipboard():
         set_clipboard(current_clipboard)
 
-ALPHABET = string.lowercase
-CASE_ALPHABET = ALPHABET + string.uppercase
+CASE_ALPHABET = string.ascii_letters
 ALPHANUMERIC = CASE_ALPHABET + string.digits
 EVERYTHING = ALPHANUMERIC + string.punctuation
 
@@ -110,7 +116,7 @@ def record_score(term, records):
 
 def search(term, records):
     records = [(record_score(term, i), i) for i in records]
-    records = filter(itemgetter(0), records)
+    records = list(filter(itemgetter(0), records))
     records.sort(key=itemgetter(0), reverse=True)
     return [i[1] for i in records]
 
@@ -146,17 +152,18 @@ class FileCorruptionException(GPGException):
 
 def gpg_exception_factory(returncode, message):
     if returncode == 2:
-        if 'decryption failed: bad key' in message:
+        if b'decryption failed: bad key' in message:
             return IncorrectPasswordException(message)
-        if 'CRC error;' in message:
+        if b'CRC error;' in message:
             return FileCorruptionException(message)
-        if 'fatal: zlib inflate problem: invalid distance' in message:
+        if b'fatal: zlib inflate problem: invalid distance' in message:
             return FileCorruptionException(message)
-        if 'decryption failed: invalid packet' in message:
+        if b'decryption failed: invalid packet' in message:
             return FileCorruptionException(message)
-        if 'no valid OpenPGP data found':
+        if b'no valid OpenPGP data found':
             return InvalidEncryptedFileException(message)
     return Exception("unkown error", returncode, message)
+
 
 
 def dencrypt(command, pw, data):
@@ -170,8 +177,8 @@ def dencrypt(command, pw, data):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
-    proc.stdin.write(pw)
-    proc.stdin.write('\n')
+    proc.stdin.write(force_bytes(pw))
+    proc.stdin.write(b'\n')
     proc.stdin.write(data)
     output, erroroutput = proc.communicate()
     if proc.returncode != 0:
@@ -223,7 +230,7 @@ def atomic_replace(filename):
     tmpfile_name = get_tmp_file(filename)
     fd = os.open(tmpfile_name, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
     try:
-        f = os.fdopen(fd, "w+")
+        f = os.fdopen(fd, "w+b")
         yield f
         f.flush()
         os.fsync(fd)  # fdatasync? I don't know
@@ -232,12 +239,12 @@ def atomic_replace(filename):
         if not new_content:
             raise Exception("I don't think you want to blank this file...")
         try:
-            with open(filename) as current_f:
+            with open(filename, 'rb') as current_f:
                 current_content = current_f.read()
         except IOError:
-            current_content = ''
+            current_content = b''
         if current_content != new_content:
-            with open(get_backup_file(filename), 'w+') as f:
+            with open(get_backup_file(filename), 'w+b') as f:
                 f.write(current_content)
     except:
         os.unlink(tmpfile_name)
@@ -245,8 +252,6 @@ def atomic_replace(filename):
         raise
     os.rename(tmpfile_name, filename)
     f.close()
-
-
 
 
 
@@ -287,6 +292,7 @@ class InteractiveSession(object):
                 line = getpass(prompt)
             else:
                 self.output.write(prompt)
+                self.output.flush()
                 line = self.input.readline().rstrip('\n')
             if not required or line:
                 return line
@@ -312,7 +318,7 @@ class InteractiveSession(object):
             new_record[2] = gen_password_entropy(128)
         elif pw:
             new_record[2] = pw
-        print "Notes: %s" % record[3]
+        self.output.write("Notes: %s\n" % record[3])
         edit = self.prompt('Edit? [n]: ', required=False) or 'n'
         if edit[0] == 'y':
             new_record[3] = edit_in_editor(record[3])
@@ -331,7 +337,7 @@ class InteractiveSession(object):
 
     def read_records(self):
         try:
-            with open(self.file) as f:
+            with open(self.file, 'rb') as f:
                 return decode(decrypt(self.password, f.read()))
         except IOError:
             return []
@@ -387,4 +393,9 @@ class InteractiveSession(object):
         self.edit_transaction(delete)
 
     def raw_action(self):
-        self.output.write(encode(self.read_records()))
+        try:
+            # PY3
+            output = self.output.buffer
+        except AttributeError:
+            output = self.output
+        output.write(encode(self.read_records()))

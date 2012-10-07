@@ -1,6 +1,10 @@
 import os
 import random
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+    BytesIO = StringIO
+except ImportError:
+    from io import StringIO, BytesIO
 from unittest import TestCase
 from tempfile import NamedTemporaryFile
 
@@ -24,11 +28,11 @@ def test_encode_decode():
 def test_clipboard():
     restore = get_clipboard()
     try:
-        x = 'asdf'
+        x = b'asdf'
         set_clipboard(x)
         assert get_clipboard() == x
 
-        x = 'foobar'
+        x = b'foobar'
         set_clipboard(x)
         assert get_clipboard() == x
 
@@ -125,11 +129,11 @@ def test_dencrypt():
         data = random_str(10000)
         assert data == decrypt(key, encrypt(key, data))
 
-    encrypted = encrypt('foo', 'asdfasdf')
+    encrypted = encrypt('foo', b'asdfasdf')
     with pytest.raises(IncorrectPasswordException):
         decrypt('fo', encrypted)
 
-    encrypted = encrypt('foo', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi sollicitudin pharetra elit sed mollis. Proin velit nibh, laoreet consequat fringilla vitae, interdum ac dui. Nulla pretium sollicitudin enim.')
+    encrypted = encrypt('foo', b'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi sollicitudin pharetra elit sed mollis. Proin velit nibh, laoreet consequat fringilla vitae, interdum ac dui. Nulla pretium sollicitudin enim.')
     encrypted = encrypted[:100] + encrypted[101:]
     with pytest.raises(FileCorruptionException):
         decrypt('foo', encrypted)
@@ -138,44 +142,44 @@ def test_dencrypt():
         for i in range(100):
                 p = gen_password()
                 d = random_str()
-                print repr(decrypt(p, d)), repr(p), repr(d)
+                print((repr(decrypt(p, d)), repr(p), repr(d)))
 
 def test_atomic_replace():
     f = NamedTemporaryFile(delete=False)
     filename = f.name
-    f.write('first')
+    f.write(b'first')
 
     with open(filename) as f:
         assert f.read() == 'first'
 
     with atomic_replace(filename) as f:
         assert os.path.exists(get_tmp_file(filename))
-        f.write('second')
+        f.write(b'second')
 
-    with open(filename) as f:
-        assert f.read() == 'second'
+    with open(filename, 'rb') as f:
+        assert f.read() == b'second'
 
-    with open(get_backup_file(filename)) as f:
-        assert f.read() == 'first'
+    with open(get_backup_file(filename), 'rb') as f:
+        assert f.read() == b'first'
 
     with atomic_replace(filename) as f:
         assert os.path.exists(get_tmp_file(filename))
-        f.write('second')
+        f.write(b'second')
 
     # don't overwrite backup when no changes made
-    with open(get_backup_file(filename)) as f:
-        assert f.read() == 'first'
+    with open(get_backup_file(filename), 'rb') as f:
+        assert f.read() == b'first'
 
     assert not os.path.exists(get_tmp_file(filename))
 
     with pytest.raises(Exception):
         with atomic_replace(filename) as f:
-            f.write('third')
+            f.write(b'third')
             f.close()
             raise Exception
 
-    with open(filename) as f:
-        assert f.read() == 'second'
+    with open(filename, 'rb') as f:
+        assert f.read() == b'second'
     assert not os.path.exists(get_tmp_file(filename))
 
     class ItWorkedButPanic(Exception):
@@ -201,9 +205,9 @@ def test_atomic_replace():
     os.unlink(filename)
 
     with atomic_replace(filename) as f:
-        f.write('foo')
-    with open(filename) as f:
-        assert f.read() == 'foo'
+        f.write(b'foo')
+    with open(filename, 'rb') as f:
+        assert f.read() == b'foo'
     os.unlink(filename)
 
 
@@ -350,10 +354,10 @@ class TestInteractive(TestCase):
         session = InteractiveSession(self.args, input=input, output=output, password='asdf')
         session.delete_action()
 
-        print output.getvalue()
+        print(output.getvalue())
         with pytest.raises(Exception):
             pw, output = self.get_a_password('other')
-            print pw, output
+            print(pw, output)
 
         pw, output = self.get_a_password('domain.com')
         assert pw == 'password'
@@ -372,7 +376,7 @@ class TestInteractive(TestCase):
             self.add_a_password(*r)
 
         input = StringIO()
-        output = StringIO()
+        output = BytesIO()
         session = InteractiveSession(self.args, input=input, output=output, password='asdf')
         session.raw_action()
 
