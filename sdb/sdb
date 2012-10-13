@@ -7,33 +7,46 @@ import sys
 
 from sdb.passwords import InteractiveSession
 
+def add_domain(p):
+    p.add_argument('domain', nargs='?', help="The domain or search query for the record. Optional, will be prompted for if not given.", metavar='DOMAIN')
+
 parser = argparse.ArgumentParser()
-parser.add_argument('domain', nargs='?')
-parser.add_argument('--add', action="store_true")
-parser.add_argument('--edit', action="store_true")
-parser.add_argument('--delete', action="store_true")
-parser.add_argument('--raw', action="store_true")
 parser.add_argument('--file', default=os.path.expanduser('~/.passwords'))
 
-args = parser.parse_args()
-actions = [args.edit, args.add, args.delete, args.raw]
-if sum(actions) > 1:
-    parser.print_usage()
-    sys.stderr.write("Only one of --edit, --add, --delete, or --raw may be specified\n")
-    sys.exit(2)
+subparsers = parser.add_subparsers(title='commands', dest='command')
+
+add_parser = subparsers.add_parser('add', help="Add a record.")
+add_domain(add_parser)
+
+show_parser = subparsers.add_parser('show', help="Show a record and add its password to the clipboard. The default action.")
+add_domain(show_parser)
+
+edit_parser = subparsers.add_parser('edit', help="Edit a record.")
+add_domain(edit_parser)
+
+delete_parser = subparsers.add_parser('delete', help="Delete a record.")
+add_domain(delete_parser)
+
+raw_parser = subparsers.add_parser('raw', help="Show all records in the on-disk format.")
+
+
+if len(sys.argv) == 1:
+    argv = ['show']
+else:
+    argv = sys.argv[1:]
+
+args = parser.parse_args(argv)
 
 session = InteractiveSession(args)
+commands = {
+    'add': session.add_action,
+    'edit': session.edit_action,
+    'delete': session.delete_action,
+    'raw': session.raw_action,
+    'show': session.show_action,
+}
 
 try:
-    if args.add:
-        session.add_action()
-    elif args.edit:
-        session.edit_action()
-    elif args.delete:
-        session.delete_action()
-    elif args.raw:
-        session.raw_action()
-    else:
-        session.show_action()
+    commands[args.command]()
 except KeyboardInterrupt:
     pass
