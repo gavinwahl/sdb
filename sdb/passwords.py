@@ -46,7 +46,7 @@ def get_clipboard():
         return subprocess.check_output(['xclip', '-out'])
     except subprocess.CalledProcessError:
         # sometimes there is no clipboard
-        return ''
+        return b''
 
 
 def copy_to_clipboard(str, timeout=10):
