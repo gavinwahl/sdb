@@ -366,7 +366,7 @@ class InteractiveSession(object):
             try:
                 copy_to_clipboard(record[2], clipboard)
             except ClipboardException:
-                print record[2]
+                print(record[2])
         else:
             return record[2]
 
