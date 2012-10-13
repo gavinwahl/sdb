@@ -20,6 +20,7 @@ def force_bytes(s):
     except (AttributeError, UnicodeDecodeError):
         return s
 
+
 def encode(records):
     res = []
     for record in records:
@@ -37,6 +38,7 @@ def decode(str):
 
 class ClipboardException(Exception):
     pass
+
 
 def set_clipboard(str):
     proc = subprocess.Popen(['xsel', '-pi'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -85,8 +87,8 @@ def gen_password_require(requirements, choices=ALPHANUMERIC, length=10):
     """
     if len(requirements) > length or not requirements_satisfied(requirements, choices):
         raise Exception(
-                "That's impossible, you can't make a password containing %r with only %r!" % (
-                    requirements, choices))
+            "That's impossible, you can't make a password containing %r with only %r!" % (
+                requirements, choices))
     while True:
         pw = gen_password(choices, length)
         if requirements_satisfied(requirements, pw):
@@ -172,7 +174,6 @@ def gpg_exception_factory(returncode, message):
     return Exception("unkown error", returncode, message)
 
 
-
 def dencrypt(command, pw, data):
     """
     Encrypts or decrypts, by running command
@@ -180,10 +181,11 @@ def dencrypt(command, pw, data):
     if '\n' in pw:
         raise Exception('Newlines not allowed in passwords')
     proc = subprocess.Popen(
-            command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
     proc.stdin.write(force_bytes(pw))
     proc.stdin.write(b'\n')
     proc.stdin.write(data)
@@ -194,22 +196,24 @@ def dencrypt(command, pw, data):
 
 
 def encrypt(pw, data):
-    return dencrypt(['gpg', '-c',
-                '--passphrase-fd', '0',
-                '--batch',
-                '--armor',
-                '--cipher-algo', 'AES',
-                '--digest-algo', 'SHA256'],
-                pw,
-                data)
+    return dencrypt(
+        ['gpg', '-c',
+         '--passphrase-fd', '0',
+         '--batch',
+         '--armor',
+         '--cipher-algo', 'AES',
+         '--digest-algo', 'SHA256'],
+        pw,
+        data,
+    )
 
 
 def decrypt(pw, data):
     return dencrypt(
-            ['gpg', '-d', '--passphrase-fd', '0', '--batch'],
-            pw,
-            data)
-
+        ['gpg', '-d', '--passphrase-fd', '0', '--batch'],
+        pw,
+        data
+    )
 
 
 def get_tmp_file(filename):
@@ -261,7 +265,6 @@ def atomic_replace(filename):
     f.close()
 
 
-
 def edit_in_editor(current):
     EDITOR = os.environ.get('EDITOR', 'vim')
     with tempfile.NamedTemporaryFile(mode='w+') as f:
@@ -275,7 +278,6 @@ def edit_in_editor(current):
             # don't leave potentially private data lying around
             f.write('0' * os.path.getsize(f.name))
             f.flush()
-
 
 
 def pretty_record(record):
@@ -351,6 +353,7 @@ class InteractiveSession(object):
 
     def add_action(self):
         record = self.get_record(self.args.domain or self.prompt('Domain: '))
+
         def add(records):
             return records + [record]
         self.edit_transaction(add)
