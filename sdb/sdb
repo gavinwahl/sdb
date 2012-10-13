@@ -30,10 +30,10 @@ add_domain(delete_parser)
 raw_parser = subparsers.add_parser('raw', help="Show all records in the on-disk format.")
 
 
-if len(sys.argv) == 1:
-    argv = ['show']
-else:
-    argv = sys.argv[1:]
+actions = ['add', 'show', 'edit', 'delete', 'raw']
+argv = sys.argv[1:]
+if not any(i in argv for i in actions):
+    argv.append('show')
 
 args = parser.parse_args(argv)
 
