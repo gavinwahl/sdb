@@ -43,6 +43,16 @@ def test_clipboard():
         # try to not clobber the system clipboard during testing
         set_clipboard(restore)
 
+def test_clipboard_no_x():
+    import os
+    d = os.environ['DISPLAY']
+    try:
+        del os.environ['DISPLAY']
+        with pytest.raises(ClipboardException):
+            set_clipboard('a')
+    finally:
+        os.environ['DISPLAY'] = d
+
 
 def test_gen_password():
     pw = []

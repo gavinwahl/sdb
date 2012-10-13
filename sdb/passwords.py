@@ -35,15 +35,19 @@ def decode(str):
     return records
 
 
+class ClipboardException(Exception):
+    pass
+
 def set_clipboard(str):
-    proc = subprocess.Popen(['xclip'], stdin=subprocess.PIPE)
-    proc.stdin.write(str)
-    proc.communicate()
+    proc = subprocess.Popen(['xsel', '-pi'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    _, stderr = proc.communicate(str)
+    if proc.returncode != 0:
+        raise ClipboardException(stderr)
 
 
 def get_clipboard():
     try:
-        return subprocess.check_output(['xclip', '-out'])
+        return subprocess.check_output(['xsel', '-po'])
     except subprocess.CalledProcessError:
         # sometimes there is no clipboard
         return b''
@@ -53,11 +57,14 @@ def copy_to_clipboard(str, timeout=10):
     str = force_bytes(str)
     current_clipboard = get_clipboard()
     set_clipboard(str)
-    time.sleep(timeout)
-    # if the clipboard has changed in the meantime, try not to overwrite the
-    # new value. still a race condition, but this should be better
-    if str == get_clipboard():
-        set_clipboard(current_clipboard)
+    try:
+        time.sleep(timeout)
+    finally:
+        # if the clipboard has changed in the meantime, try not to overwrite the
+        # new value. still a race condition, but this should be better
+        if str == get_clipboard():
+            set_clipboard(current_clipboard)
+
 
 CASE_ALPHABET = string.ascii_letters
 ALPHANUMERIC = CASE_ALPHABET + string.digits
@@ -353,7 +360,10 @@ class InteractiveSession(object):
         self.output.write(pretty_record(record))
         self.output.write('\n')
         if clipboard:
-            copy_to_clipboard(record[2], clipboard)
+            try:
+                copy_to_clipboard(record[2], clipboard)
+            except ClipboardException:
+                print record[2]
         else:
             return record[2]
 
