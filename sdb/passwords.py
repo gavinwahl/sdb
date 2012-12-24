@@ -5,6 +5,7 @@ import math
 import os
 import sys
 import tempfile
+import select
 from operator import itemgetter
 from contextlib import contextmanager
 from getpass import getpass
@@ -53,6 +54,33 @@ def get_clipboard():
     except subprocess.CalledProcessError:
         # sometimes there is no clipboard
         return b''
+
+
+def set_clipboard_once(str):
+    """
+    Set the clipboard to str, and wait for it to be retrieved once.
+    """
+    proc = subprocess.Popen(['xsel', '-pi', '-vvvv', '-n'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc.stdin.write(str)
+    proc.stdin.close()
+    while True:
+        rfds, _, _ = select.select([sys.stdin, proc.stderr], [], [])
+        if sys.stdin in rfds:
+            # line from std == cancel
+            sys.stdin.readline()
+            proc.kill()
+            break
+        else:
+            line = proc.stderr.readline()
+        if not line:
+            # xsel quit, probably because someone else took ownership of the
+            # selection
+            break
+        elif '(UTF8_STRING)' in line or '(TEXT)' in line:
+            # someone retrieved the selection, all done
+            proc.kill()
+            break
+    proc.wait()
 
 
 def copy_to_clipboard(str, timeout=10):
@@ -367,7 +395,9 @@ class InteractiveSession(object):
         self.output.write('\n')
         if clipboard:
             try:
-                copy_to_clipboard(record[2], clipboard)
+                set_clipboard_once(record[1])
+                print('password in clipboard')
+                set_clipboard_once(record[2])
             except ClipboardException:
                 print(record[2])
         else:
