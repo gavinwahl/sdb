@@ -49,7 +49,7 @@ def test_clipboard_no_x():
     try:
         del os.environ['DISPLAY']
         with pytest.raises(ClipboardException):
-            set_clipboard('a')
+            set_clipboard(b'a')
     finally:
         os.environ['DISPLAY'] = d
 
