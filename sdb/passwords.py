@@ -1,5 +1,4 @@
 import ast
-import subprocess
 import time
 import string
 import math
@@ -11,7 +10,8 @@ from contextlib import contextmanager
 from getpass import getpass
 import random; random = random.SystemRandom()
 
-from .diceware import WORDS
+import sdb.subprocess_compat as subprocess
+from sdb.diceware import WORDS
 
 
 def force_bytes(s):
