@@ -46,7 +46,7 @@ def set_clipboard(str):
     proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     _, stderr = proc.communicate(str)
     if proc.returncode != 0:
-        raise ClipboardException(proc.returncode, command, stderr)
+        raise ClipboardException(proc.returncode, command, output=stderr)
 
 
 def get_clipboard():
@@ -84,7 +84,7 @@ def set_clipboard_once(str):
             break
     proc.wait()
     if proc.returncode != 0:
-        raise ClipboardException(proc.returncode, command, proc.stderr.read())
+        raise ClipboardException(proc.returncode, command, output=proc.stderr.read())
 
 
 def copy_to_clipboard(str, timeout=10):
