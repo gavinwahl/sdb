@@ -37,15 +37,16 @@ def decode(str):
     return records
 
 
-class ClipboardException(Exception):
+class ClipboardException(subprocess.CalledProcessError):
     pass
 
 
 def set_clipboard(str):
-    proc = subprocess.Popen(['xsel', '-pi'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    command = ['xsel', '-pi']
+    proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     _, stderr = proc.communicate(str)
     if proc.returncode != 0:
-        raise ClipboardException(stderr)
+        raise ClipboardException(proc.returncode, command, stderr)
 
 
 def get_clipboard():
@@ -60,8 +61,9 @@ def set_clipboard_once(str):
     """
     Set the clipboard to str, and wait for it to be retrieved once.
     """
-    proc = subprocess.Popen(['xsel', '-pi', '-vvvv', '-n'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc.stdin.write(str)
+    command = ['xsel', '-pi', '-vvvv', '-n']
+    proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc.stdin.write(force_bytes(str))
     proc.stdin.close()
     while True:
         rfds, _, _ = select.select([sys.stdin, proc.stderr], [], [])
@@ -76,11 +78,13 @@ def set_clipboard_once(str):
             # xsel quit, probably because someone else took ownership of the
             # selection
             break
-        elif '(UTF8_STRING)' in line or '(TEXT)' in line:
+        elif b'(UTF8_STRING)' in line or b'(TEXT)' in line:
             # someone retrieved the selection, all done
             proc.kill()
             break
     proc.wait()
+    if proc.returncode != 0:
+        raise ClipboardException(proc.returncode, command, proc.stderr.read())
 
 
 def copy_to_clipboard(str, timeout=10):
@@ -390,16 +394,19 @@ class InteractiveSession(object):
         self.edit_transaction(add)
 
     def show_action(self, clipboard=10):
-        record = self.find_record(self.args.domain or self.prompt('Domain: '), self.read_records())
+        record = self.find_record(self.args.domain or self.prompt("Domain: "), self.read_records())
         self.output.write(pretty_record(record))
-        self.output.write('\n')
+        self.output.write("\n")
         if clipboard:
             try:
+                self.output.write("username in clipboard\n")
                 set_clipboard_once(record[1])
-                print('password in clipboard')
+                self.output.write("password in clipboard\n")
                 set_clipboard_once(record[2])
             except ClipboardException:
-                print(record[2])
+                self.output.write("couldn't set clipboard\n")
+                self.output.write(record[2])
+                self.output.write("\n")
         else:
             return record[2]
 
