@@ -1,3 +1,9 @@
+# sdb
+
+A command-line password safe.
+
+[![Build Status](https://travis-ci.org/gavinwahl/sdb.png?branch=master)](https://travis-ci.org/gavinwahl/sdb)
+
 # Usage
 
     $ sdb gmail
