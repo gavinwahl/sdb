@@ -255,14 +255,17 @@ def atomic_replace(filename):
         except IOError:
             current_content = b''
         if current_content != new_content:
-            with open(get_backup_file(filename), 'w+b') as f:
-                f.write(current_content)
+            with open(get_backup_file(filename), 'w+b') as backup_file:
+                backup_file.write(current_content)
     except:
+        # If there was an exception, remove the temporary file and reraise
         os.unlink(tmpfile_name)
-        f.close()
         raise
-    os.rename(tmpfile_name, filename)
-    f.close()
+    else:
+        # No exception, rename the temp file over the original
+        os.rename(tmpfile_name, filename)
+    finally:
+        f.close()
 
 
 def edit_in_editor(current):
