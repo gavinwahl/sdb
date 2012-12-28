@@ -38,6 +38,11 @@ def decode(str):
 
 
 class ClipboardException(subprocess.CalledProcessError):
+    def __init__(self, returncode, cmd, output=None):
+        # Python 2.6 compatibility -- CalledProcessError doesn't take output in
+        # that version
+        super(ClipboardException, self).__init__(returncode, cmd)
+        self.output = output
     pass
 
 
