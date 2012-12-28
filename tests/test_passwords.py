@@ -43,6 +43,36 @@ def test_clipboard():
         # try to not clobber the system clipboard during testing
         set_clipboard(restore)
 
+def test_set_clipboard_once():
+    import threading
+    class Thread(threading.Thread):
+        def run(self):
+            time.sleep(1)
+            self.contents = get_clipboard()
+    t = Thread()
+    t.start()
+    set_clipboard(b'before')
+    set_clipboard_once(b'foo')
+    t.join()
+    assert t.contents == b'foo'
+    # we should restore the previous value
+    assert get_clipboard() == b'before'
+
+
+    class Thread(threading.Thread):
+        def run(self):
+            time.sleep(1)
+            set_clipboard(b'asdf')
+            self.contents = get_clipboard()
+    t = Thread()
+    t.start()
+    set_clipboard(b'before')
+    set_clipboard_once(b'foo')
+    t.join()
+    assert t.contents == b'asdf'
+    # if the selection belongs to someone else, we shouldn't restore
+    assert get_clipboard() == b'asdf'
+
 def test_clipboard_no_x():
     import os
     d = os.environ['DISPLAY']

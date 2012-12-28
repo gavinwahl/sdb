@@ -46,7 +46,7 @@ def set_clipboard(str):
     proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     _, stderr = proc.communicate(str)
     if proc.returncode != 0:
-        raise ClipboardException(proc.returncode, command, output=stderr)
+        raise ClipboardException(proc.returncode, command, stderr)
 
 
 def get_clipboard():
@@ -61,16 +61,19 @@ def set_clipboard_once(str):
     """
     Set the clipboard to str, and wait for it to be retrieved once.
     """
+    current = get_clipboard()
     command = ['xsel', '-pi', '-vvvv', '-n']
     proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     proc.stdin.write(force_bytes(str))
     proc.stdin.close()
+    expected_returncode = 0
     while True:
         rfds, _, _ = select.select([sys.stdin, proc.stderr], [], [])
         if sys.stdin in rfds:
             # line from std == cancel
             sys.stdin.readline()
             proc.kill()
+            expected_returncode = -9
             break
         else:
             line = proc.stderr.readline()
@@ -81,10 +84,13 @@ def set_clipboard_once(str):
         elif b'(UTF8_STRING)' in line or b'(TEXT)' in line:
             # someone retrieved the selection, all done
             proc.kill()
+            expected_returncode = -9
             break
     proc.wait()
-    if proc.returncode != 0:
-        raise ClipboardException(proc.returncode, command, output=proc.stderr.read())
+    if get_clipboard() == b'':
+        set_clipboard(current)
+    if proc.returncode != expected_returncode:
+        raise ClipboardException(proc.returncode, command, proc.stderr.read())
 
 
 def copy_to_clipboard(str, timeout=10):
