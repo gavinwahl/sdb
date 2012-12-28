@@ -81,7 +81,7 @@ def set_clipboard_once(str):
             # xsel quit, probably because someone else took ownership of the
             # selection
             break
-        elif b'(UTF8_STRING)' in line or b'(TEXT)' in line:
+        elif b'(UTF8_STRING)' in line or b'(TEXT)' in line or b'(XSEL_DATA)' in line:
             # someone retrieved the selection, all done
             proc.kill()
             expected_returncode = -9
