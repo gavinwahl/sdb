@@ -3,6 +3,14 @@ import os
 import re
 from setuptools import setup
 
+# workaround for nose/multiprocessing atexit bug.
+# see <http://bugs.python.org/issue15881#msg170215>
+try:
+    import multiprocessing
+except ImportError:
+    pass
+
+
 __doc__="""
 Command-line password manager
 """
