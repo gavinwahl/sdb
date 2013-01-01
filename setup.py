@@ -35,5 +35,5 @@ setup(name='sdb',
     license='BSD',
     test_suite='nose.collector',
     install_requires=install_requires,
-    tests_require = ['nose', 'pytest'] + install_requires,
+    setup_requires = ['nose', 'pytest'] + install_requires,
 )
