@@ -78,11 +78,26 @@ def test_clipboard_no_x():
     d = os.environ['DISPLAY']
     try:
         del os.environ['DISPLAY']
-        with pytest.raises(ClipboardException):
+        try:
             set_clipboard(b'a')
+            assert not "must raise exception"
+        except ClipboardException as e:
+            assert e.output.startswith("xsel: Can't open display: ")
     finally:
         os.environ['DISPLAY'] = d
 
+def test_set_clipboard_once_no_x():
+    import os
+    d = os.environ['DISPLAY']
+    try:
+        del os.environ['DISPLAY']
+        try:
+            set_clipboard_once(b'a')
+            assert not "must raise exception"
+        except ClipboardException as e:
+            assert e.output.startswith("xsel: Can't open display: ")
+    finally:
+        os.environ['DISPLAY'] = d
 
 def test_gen_password():
     pw = []

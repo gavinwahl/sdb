@@ -56,7 +56,7 @@ def set_clipboard(str):
 
 def get_clipboard():
     try:
-        return subprocess.check_output(['xsel', '-po'])
+        return subprocess.check_output(['xsel', '-po'], stderr=subprocess.PIPE)
     except subprocess.CalledProcessError:
         # sometimes there is no clipboard
         return b''
@@ -72,6 +72,7 @@ def set_clipboard_once(str):
     proc.stdin.write(force_bytes(str))
     proc.stdin.close()
     expected_returncode = 0
+    stderr_output = ''
     while True:
         rfds, _, _ = select.select([sys.stdin, proc.stderr], [], [])
         if sys.stdin in rfds:
@@ -82,6 +83,7 @@ def set_clipboard_once(str):
             break
         else:
             line = proc.stderr.readline()
+            stderr_output += line
         if not line:
             # xsel quit, probably because someone else took ownership of the
             # selection
@@ -92,10 +94,10 @@ def set_clipboard_once(str):
             expected_returncode = -9
             break
     proc.wait()
+    if proc.returncode != expected_returncode:
+        raise ClipboardException(proc.returncode, command, stderr_output)
     if get_clipboard() == b'':
         set_clipboard(current)
-    if proc.returncode != expected_returncode:
-        raise ClipboardException(proc.returncode, command, proc.stderr.read())
 
 
 def copy_to_clipboard(str, timeout=10):
@@ -414,8 +416,8 @@ class InteractiveSession(object):
                 set_clipboard_once(record[1])
                 self.output.write("password in clipboard\n")
                 set_clipboard_once(record[2])
-            except ClipboardException:
-                self.output.write("couldn't set clipboard\n")
+            except ClipboardException as e:
+                self.output.write("couldn't set clipboard: %s\n" % e.output.split('\n')[0])
                 self.output.write(record[2])
                 self.output.write("\n")
         else:
