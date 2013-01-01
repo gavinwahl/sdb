@@ -72,7 +72,7 @@ def set_clipboard_once(str):
     proc.stdin.write(force_bytes(str))
     proc.stdin.close()
     expected_returncode = 0
-    stderr_output = ''
+    stderr_output = b''
     while True:
         rfds, _, _ = select.select([sys.stdin, proc.stderr], [], [])
         if sys.stdin in rfds:

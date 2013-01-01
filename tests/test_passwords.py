@@ -82,7 +82,7 @@ def test_clipboard_no_x():
             set_clipboard(b'a')
             assert not "must raise exception"
         except ClipboardException as e:
-            assert e.output.startswith("xsel: Can't open display: ")
+            assert e.output.startswith(b"xsel: Can't open display: ")
     finally:
         os.environ['DISPLAY'] = d
 
@@ -95,7 +95,7 @@ def test_set_clipboard_once_no_x():
             set_clipboard_once(b'a')
             assert not "must raise exception"
         except ClipboardException as e:
-            assert e.output.startswith("xsel: Can't open display: ")
+            assert e.output.startswith(b"xsel: Can't open display: ")
     finally:
         os.environ['DISPLAY'] = d
 
