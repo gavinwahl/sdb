@@ -1,8 +1,8 @@
-import subprocess
 import select
 import time
 import sys
 
+import sdb.subprocess_compat as subprocess
 from sdb.util import force_bytes
 
 
