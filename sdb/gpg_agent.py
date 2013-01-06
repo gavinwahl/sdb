@@ -1,6 +1,16 @@
 import os
 import socket
 
+
+class AgentError(Exception):
+    """
+    Raised when there's a problem with gpg-agent -- like the user cancelling.
+
+    what exception should this inherit from?
+    """
+    pass
+
+
 class GpgAgent(object):
     def __init__(self, socket_file=None):
         if not socket_file:
@@ -24,22 +34,26 @@ class GpgAgent(object):
         self.socket.write(line + '\n')
         self.socket.flush()
 
-    def get_passphrase(self, cache_id, error='X', prompt='X', description='X'):
+    def get_passphrase(self, cache_id, error='X', prompt='X', description='X', repeat=0):
         error = error.replace(' ', '+')
         prompt = prompt.replace(' ', '+')
         description = description.replace(' ', '+')
         self.writeline(
-            "GET_PASSPHRASE --data {cache_id} {error} {prompt} {description}".format(
+            "GET_PASSPHRASE --repeat={repeat} --data {cache_id} {error} {prompt} {description}".format(
                 cache_id=cache_id,
                 error=error,
                 prompt=prompt,
-                description=description
-        ))
+                description=description,
+                repeat=repeat,
+            )
+        )
         self.socket.flush()
 
         pw_line = self.socket.readline()
         if pw_line == 'OK\n':
             return ''
+        if pw_line.startswith('ERR '):
+            raise AgentError(pw_line)
         assert pw_line.startswith('D '), "%r is not a data line" % pw_line
         self.check_ok()
         return pw_line[2:-1]
