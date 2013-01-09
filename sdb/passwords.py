@@ -1,4 +1,6 @@
 import ast
+import subprocess
+import hashlib
 import time
 import string
 import math
@@ -12,6 +14,7 @@ import random; random = random.SystemRandom()
 
 import sdb.subprocess_compat as subprocess
 from sdb.diceware import WORDS
+from sdb import gpg_agent
 
 
 def force_bytes(s):
@@ -294,9 +297,48 @@ class InteractiveSession(object):
     def __init__(self, args, output=sys.stdout, input=sys.stdin, password=None):
         self.args = args
         self.file = args.file
-        self.password = password or getpass()
         self.output = output
         self.input = input
+
+        try:
+            self.gpg_agent = gpg_agent.GpgAgent()
+        except KeyError:
+            self.gpg_agent = None
+
+        self.gpg_agent_password_id = 'sdb_m:{file_fingerprint}'.format(
+            file_fingerprint=hashlib.md5(force_bytes(self.file)).hexdigest()
+        )
+
+        self.password = password
+        if not self.password:
+            self.password = self.get_master_password()
+
+    def get_master_password(self, error=None):
+        if self.password:
+            return self.password
+
+        if self.input == sys.stdin:
+            if self.gpg_agent:
+                error = error or 'X'
+                self.password = self.gpg_agent.get_passphrase(
+                    self.gpg_agent_password_id,
+                    prompt='Master password',
+                    error=error
+                )
+            else:
+                if error:
+                    self.output.write('Error: {error}, try again: '.format(error=error))
+                self.password = getpass()
+        else:
+            self.output.write('Password: ')
+            self.output.flush()
+            self.password = self.input.readline().rstrip('\n')
+        return self.password
+
+    def clear_master_password(self):
+        self.password = None
+        if self.gpg_agent:
+            self.gpg_agent.clear_passphrase(self.gpg_agent_password_id)
 
     def prompt(self, prompt='', required=True, password=False):
         while True:
@@ -347,10 +389,18 @@ class InteractiveSession(object):
         else:
             return possibilities[0]
 
-    def read_records(self):
+    def read_records(self, error=None):
         try:
             with open(self.file, 'rb') as f:
-                return decode(decrypt(self.password, f.read()))
+                password = self.get_master_password(error)
+                try:
+                    return decode(decrypt(password, f.read()))
+                except IncorrectPasswordException:
+                    self.clear_master_password()
+                    return self.read_records(error='Incorrect password')
+                except:
+                    self.clear_master_password()
+                    raise
         except IOError:
             return []
 
