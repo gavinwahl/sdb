@@ -4,33 +4,62 @@ A command-line password safe.
 
 [![Build Status](https://travis-ci.org/gavinwahl/sdb.png?branch=master)](https://travis-ci.org/gavinwahl/sdb)
 
-# Usage
+## Installation
 
-    $ sdb gmail
+sdb depends on `xsel`.  If you are on a Debian-based Linux distro, you can
+install `xsel` by typing:
+
+    # apt-get install xsel
+
+You can install sdb straight from GitHub.
+
+    $ pip install -e git://github.com/gavinwahl/sdb.git@master#egg=sdb
+
+## Usage
+
+To save a password
+
+    $ sdb add foobar.com
     Password:
-    something@gmail.com
-    # password in clipboard for 10 seconds
+    Username: bill
+    Password [blank to generate]:
+    Notes:
 
-    $ sdb g
+To retrieve that password
+
+    $ sdb show foobar.com
     Password:
-    1.) google.com
-    2.) github.com
-    #> 2
-    githubusername
+    bill@foobar.com
 
-    $ sdb --add foobar.com
+**Note:** The password will be put in your X clipboard for ten seconds.
+
+Alternatively, you can see all of the passwords you have stored by typing
+
+    $ sdb raw
     Password:
-    Username:
-    Password (blank to generate):
-    Notes []:
+    ('foobar.com', 'bill', 'XXXXXXXXXXXXXXXXXXX', '')
 
-    $ sdb --edit foo
+The `show` command will list several choices if more than one matches.
+
+    $ sdb show f
+    Password:
+    0) ('foobar.com', 'bill', 'XXXXXXXXXXXXXXXXXXX', '')
+    1) ('foofoo.com', 'bill', 'XXXXXXXXXXXXXXXXXXX', '')
+    Which did you mean? [0]:
+
+You can change your password if you like
+
+    $ sdb edit foo
     Password:
     Name [foo.com]:
-    Username [foo@foo.com]:
-    Password []:
-    Notes (edit in editor y/n):
+    Username [foo]:
+    Password []/g:
+    Notes:
+    Edit? [n]:
 
-    $ sdb --delete foo
+If you want to delete a password you can do that too.
+
+    $ sdb delete foo
+    Password:
     username@foo.com
     Really? [n]:
