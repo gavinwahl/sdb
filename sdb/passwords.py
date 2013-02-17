@@ -1,27 +1,22 @@
+import os
 import ast
-import subprocess
-import hashlib
+import sys
+import math
 import time
 import string
-import math
-import os
-import sys
+import hashlib
 import tempfile
+import subprocess
 from operator import itemgetter
 from contextlib import contextmanager
 from getpass import getpass
 import random; random = random.SystemRandom()
 
 import sdb.subprocess_compat as subprocess
+from sdb.util import force_bytes
+from sdb.clipboard import set_clipboard_once, ClipboardException
 from sdb.diceware import WORDS
 from sdb import gpg_agent
-
-
-def force_bytes(s):
-    try:
-        return s.encode('utf-8')
-    except (AttributeError, UnicodeDecodeError):
-        return s
 
 
 def encode(records):
@@ -37,38 +32,6 @@ def decode(str):
         if line:
             records.append(ast.literal_eval(line))
     return records
-
-
-class ClipboardException(Exception):
-    pass
-
-
-def set_clipboard(str):
-    proc = subprocess.Popen(['xsel', '-pi'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-    _, stderr = proc.communicate(str)
-    if proc.returncode != 0:
-        raise ClipboardException(stderr)
-
-
-def get_clipboard():
-    try:
-        return subprocess.check_output(['xsel', '-po'])
-    except subprocess.CalledProcessError:
-        # sometimes there is no clipboard
-        return b''
-
-
-def copy_to_clipboard(str, timeout=10):
-    str = force_bytes(str)
-    current_clipboard = get_clipboard()
-    set_clipboard(str)
-    try:
-        time.sleep(timeout)
-    finally:
-        # if the clipboard has changed in the meantime, try not to overwrite the
-        # new value. still a race condition, but this should be better
-        if str == get_clipboard():
-            set_clipboard(current_clipboard)
 
 
 CASE_ALPHABET = string.ascii_letters
@@ -412,14 +375,19 @@ class InteractiveSession(object):
         self.edit_transaction(add)
 
     def show_action(self, clipboard=10):
-        record = self.find_record(self.args.domain or self.prompt('Domain: '), self.read_records())
+        record = self.find_record(self.args.domain or self.prompt("Domain: "), self.read_records())
         self.output.write(pretty_record(record))
-        self.output.write('\n')
+        self.output.write("\n")
         if clipboard:
             try:
-                copy_to_clipboard(record[2], clipboard)
-            except ClipboardException:
-                print(record[2])
+                self.output.write("username in clipboard\n")
+                set_clipboard_once(record[1])
+                self.output.write("password in clipboard\n")
+                set_clipboard_once(record[2])
+            except ClipboardException as e:
+                self.output.write("couldn't set clipboard: %s\n" % e.output.split('\n')[0])
+                self.output.write(record[2])
+                self.output.write("\n")
         else:
             return record[2]
 

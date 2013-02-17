@@ -25,35 +25,6 @@ def test_encode_decode():
 
     assert [] == decode(encode([]))
 
-def test_clipboard():
-    restore = get_clipboard()
-    try:
-        x = b'asdf'
-        set_clipboard(x)
-        assert get_clipboard() == x
-
-        x = b'foobar'
-        set_clipboard(x)
-        assert get_clipboard() == x
-
-        copy_to_clipboard('fafa', .1)
-        # clipboard should be unchanged by the time copy_to_clipboard returns
-        assert get_clipboard() == x
-    finally:
-        # try to not clobber the system clipboard during testing
-        set_clipboard(restore)
-
-def test_clipboard_no_x():
-    import os
-    d = os.environ['DISPLAY']
-    try:
-        del os.environ['DISPLAY']
-        with pytest.raises(ClipboardException):
-            set_clipboard(b'a')
-    finally:
-        os.environ['DISPLAY'] = d
-
-
 def test_gen_password():
     pw = []
     for i in range(100):
@@ -150,9 +121,9 @@ def test_dencrypt():
 
     with pytest.raises(GPGException):
         for i in range(100):
-                p = gen_password()
-                d = random_str()
-                print((repr(decrypt(p, d)), repr(p), repr(d)))
+            p = gen_password()
+            d = random_str()
+            print((repr(decrypt(p, d)), repr(p), repr(d)))
 
 def test_atomic_replace():
     f = NamedTemporaryFile(delete=False)
