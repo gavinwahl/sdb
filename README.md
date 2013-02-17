@@ -31,7 +31,9 @@ To retrieve that password
     Password:
     bill@foobar.com
 
-**Note:** The password will be put in your X clipboard for ten seconds.
+**Note:** The username and then the password will be put in the X clipboard
+until you press enter or paste them. If you're not running X (or there is no
+`$DISPLAY`), the password will be printed.
 
 Alternatively, you can see all of the passwords you have stored by typing
 
