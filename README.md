@@ -65,3 +65,11 @@ If you want to delete a password you can do that too.
     Password:
     username@foo.com
     Really? [n]:
+
+## Remembering the master password
+sdb will automatically use gpg-agent if it is running. To start gpg-agent
+for only the current terminal, you can use
+
+    eval $(gpg-agent --daemon)
+
+To use it everywhere, start it in your `.xsession` file.
