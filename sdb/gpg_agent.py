@@ -12,9 +12,17 @@ class AgentError(Exception):
 
 
 class GpgAgent(object):
-    def __init__(self, socket_file=None):
+    def __init__(self, socket_file=None, info_file=None):
         if not socket_file:
-            socket_file, _, _ = os.environ['GPG_AGENT_INFO'].partition(':')
+            try:
+                env = os.environ['GPG_AGENT_INFO']
+            except KeyError:
+                if info_file:
+                    with open(info_file) as f:
+                        _, _, env = f.read().partition('=')
+                else:
+                    raise AgentError('No gpg-agent available')
+            socket_file, _, _ = env.partition(':')
 
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(socket_file)

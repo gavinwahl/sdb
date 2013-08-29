@@ -2,11 +2,9 @@ import os
 import ast
 import sys
 import math
-import time
 import string
 import hashlib
 import tempfile
-import subprocess
 from operator import itemgetter
 from contextlib import contextmanager
 from getpass import getpass
@@ -15,7 +13,6 @@ import random; random = random.SystemRandom()
 import sdb.subprocess_compat as subprocess
 from sdb.util import force_bytes
 from sdb.clipboard import set_clipboard_once, ClipboardException
-from sdb.diceware import WORDS
 from sdb import gpg_agent
 
 
@@ -262,10 +259,11 @@ class InteractiveSession(object):
         self.file = args.file
         self.output = output
         self.input = input
+        self.gpg_agent_info = args.gpg_agent_info
 
         try:
-            self.gpg_agent = gpg_agent.GpgAgent()
-        except KeyError:
+            self.gpg_agent = gpg_agent.GpgAgent(info_file=args.gpg_agent_info)
+        except (KeyError, IOError, gpg_agent.AgentError):
             self.gpg_agent = None
 
         self.gpg_agent_password_id = 'sdb_m:{file_fingerprint}'.format(
@@ -433,3 +431,7 @@ class InteractiveSession(object):
         except AttributeError:
             output = self.output
         output.write(encode(self.read_records()))
+
+
+def agent_action(args):
+    subprocess.call(['gpg-agent', '--daemon', '--write-env-file', args.gpg_agent_info])

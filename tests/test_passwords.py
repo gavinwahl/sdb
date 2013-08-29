@@ -202,7 +202,7 @@ class TestInteractive(TestCase):
     def setUp(self):
         self.filename = NamedTemporaryFile(delete=False).name
         os.unlink(self.filename)
-        self.args = Empty(file=self.filename)
+        self.args = Empty(file=self.filename, gpg_agent_info=None)
 
     def tearDown(self):
         try:
