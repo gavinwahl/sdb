@@ -86,7 +86,7 @@ def match(needle, haystack):
 
 
 def record_score(term, records):
-    return match(term, records[0] + records[1] + records[3])
+    return match(term, records[1] + records[0] + records[3])
 
 
 def search(term, records):
